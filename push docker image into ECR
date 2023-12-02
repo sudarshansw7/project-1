@@ -1,0 +1,62 @@
+pipeline
+{
+    agent any
+    
+    stages
+    {
+        stage('cont download')
+        {
+            steps
+            {
+                git 'https://github.com/sudarshansw7/mymaven.git'
+            }
+        }
+        stage('conti build')
+        {
+            steps
+            {
+                sh 'mvn package'
+            }
+        }
+        stage('create dockerfile')
+        {
+            steps
+            {
+            sh 'cp /var/lib/jenkins/workspace/project-3/webapp/target/webapp.war /var/lib/jenkins/workspace/project-3' 
+
+            sh '''cat>dockerfile<<EOF
+                
+FROM tomee
+MAINTAINER sudarshan
+COPY *.war /usr/local/tomee/webapps/testapp.war
+                
+EOF
+    '''
+
+            }
+        }
+        stage('build docker image')
+        {
+            steps
+            {
+                sh 'docker build -t myapplication .'
+            }
+        }
+        stage('push docker image into ECR Regitry')
+        {
+            steps
+            {
+                sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 768828179344.dkr.ecr.us-east-1.amazonaws.com'
+                
+                sh 'docker build -t myapplication .'
+                
+                sh 'docker tag myapplication:latest 768828179344.dkr.ecr.us-east-1.amazonaws.com/myapplication:latest'
+                
+                sh 'docker push 768828179344.dkr.ecr.us-east-1.amazonaws.com/myapplication:latest'
+            }
+        }
+        
+    
+        
+    }
+}
